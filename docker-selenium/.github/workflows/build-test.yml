@@ -1,0 +1,30 @@
+name: Build & test
+
+on:
+  workflow_call:
+    inputs:
+      release:
+        description: 'Test a new release process'
+        required: false
+        type: boolean
+        default: false
+  workflow_dispatch:
+  push:
+    paths-ignore:
+      - '**.md'
+  pull_request:
+    paths-ignore:
+      - '**.md'
+
+permissions: write-all
+
+jobs:
+  docker-test:
+    uses: ./.github/workflows/docker-test.yml
+    with:
+      release: ${{ inputs.release == 'true' }}
+
+  helm-chart-test:
+    uses: ./.github/workflows/helm-chart-test.yml
+    with:
+      release: ${{ inputs.release == 'true' }}
