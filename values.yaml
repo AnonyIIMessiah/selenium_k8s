@@ -8,11 +8,8 @@ global:
     imageRegistry: 004468257635.dkr.ecr.ap-south-1.amazonaws.com
     # Image tag for all selenium components
     imageTag: latest
-    # imageTag: 4.21.0-20240522
-
     # Image tag for browser's nodes
     nodesImageTag: latest
-    # nodesImageTag: 4.21.0-20240522
     # Image tag for browser's video recorder
     # videoImageTag: ffmpeg-6.1.1-20240522
     # kubectl image is used to execute kubectl commands in utility jobs
@@ -34,7 +31,7 @@ global:
 tls:
   enabled: false
   ingress:
-    generateTLS: false
+    generateTLS: true
     defaultName: "SeleniumHQ"
     defaultDays: 3650
     defaultCN: "www.selenium.dev"
@@ -77,6 +74,7 @@ serviceAccount:
 
 # RBAC settings
 rbacRole:
+  create: true
   # nameOverride:
   annotations: {}
   rules:
@@ -97,6 +95,7 @@ rbacRole:
       verbs: [get, list, patch, update, delete]
 
 rbacRoleBinding:
+  create: true
   # nameOverride:
   annotations: {}
   roleRef:
@@ -117,7 +116,6 @@ ingress:
     proxyBuffer:
       size: 512M
       number: 4
-  
   ports:
     http: 80
     https: 443
@@ -130,15 +128,6 @@ ingress:
     alb.ingress.kubernetes.io/ssl-redirect: "443"
     alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:ap-south-1:004468257635:certificate/6b116af7-a1c8-4173-8ce1-556f140e08ce
     external-dns.alpha.kubernetes.io/hostname: selenium.recruitcrm.net
-    alb.ingress.kubernetes.io/load-balancer-attributes: idle_timeout.timeout_seconds=3600
-    # alb.ingress.kubernetes.io/proxy-connect-timeout: "7200"
-    # alb.ingress.kubernetes.io/proxy-read-timeout: "3600"
-    # nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
-    # nginx.ingress.kubernetes.io/enable-cors: "true"
-    # nginx.ingress.kubernetes.io/cors-allow-methods: "PUT, GET, POST, OPTIONS, DELETE, PATCH"
-    # nginx.ingress.kubernetes.io/cors-allow-credentials: "true"
-    # nginx.ingress.kubernetes.io/configuration-snippet: |
-    #     more_set_headers "Access-Control-Allow-Origin: $http_origin";
   # Default host for the ingress resource
   hostname: "selenium.recruitcrm.net"
   # Default host path for the ingress resource
@@ -327,13 +316,7 @@ components:
       periodSeconds: 10
       successThreshold: 1
     # Resources for router container
-    resources:
-      requests:
-        memory: "2Gi"
-        cpu: "2"
-      limits:
-        memory: "2Gi"
-        cpu: "2"
+    resources: {}
     # SecurityContext for router container
     securityContext: {}
     # Kubernetes service type (see https://kubernetes.io/docs/concepts/services-networking/service/#publishing-services-service-types)
@@ -397,13 +380,7 @@ components:
       periodSeconds: 10
       successThreshold: 1
     # Resources for Distributor container
-    resources:
-      requests:
-        memory: "2Gi"
-        cpu: "2"
-      limits:
-        memory: "2Gi"
-        cpu: "2"
+    resources: {}
     # SecurityContext for Distributor container
     securityContext: {}
     # Kubernetes service type (see https://kubernetes.io/docs/concepts/services-networking/service/#publishing-services-service-types)
@@ -442,13 +419,7 @@ components:
     subscribePort: 4443
     subscribeNodePort: 30443
     # Resources for event-bus container
-    resources:
-      requests:
-        memory: "2Gi"
-        cpu: "1"
-      limits:
-        memory: "2Gi"
-        cpu: "1"
+    resources: {}
     # SecurityContext for event-bus container
     securityContext: {}
     # Kubernetes service type (see https://kubernetes.io/docs/concepts/services-networking/service/#publishing-services-service-types)
@@ -479,13 +450,7 @@ components:
     annotations: {}
     port: 5556
     # Resources for Session Map container
-    resources:
-      requests:
-        memory: "2Gi"
-        cpu: "1"
-      limits:
-        memory: "2Gi"
-        cpu: "1"
+    resources: {}
     # SecurityContext for Session Map container
     securityContext: {}
     # Kubernetes service type (see https://kubernetes.io/docs/concepts/services-networking/service/#publishing-services-service-types)
@@ -517,13 +482,7 @@ components:
     port: 5559
     nodePort: 30559
     # Resources for Session Queue container
-    resources:
-      requests:
-        memory: "2Gi"
-        cpu: "1"
-      limits:
-        memory: "2Gi"
-        cpu: "1"
+    resources: {}
     # SecurityContext for Session Queue container
     securityContext: {}
     # Kubernetes service type (see https://kubernetes.io/docs/concepts/services-networking/service/#publishing-services-service-types)
@@ -641,13 +600,7 @@ hub:
   #   persistentVolumeClaim:
   #     claimName: my-pv-claim
   # Resources for selenium-hub container
-  resources:
-    requests:
-      memory: "2Gi"
-      cpu: "1"
-    limits:
-      memory: "2Gi"
-      cpu: "1"
+  resources: {}
   # SecurityContext for selenium-hub container
   securityContext: {}
   # Kubernetes service type (see https://kubernetes.io/docs/concepts/services-networking/service/#publishing-services-service-types)
@@ -691,7 +644,7 @@ autoscaling:
   # Enable autoscaling without automatically installing KEDA
   enableWithExistingKEDA: false
   # Which type of KEDA scaling to use: job or deployment
-  scalingType: deployment
+  scalingType: job
   # Annotations for KEDA resources: ScaledObject and ScaledJob
   annotations:
     "helm.sh/hook": post-install,post-upgrade,post-rollback
@@ -700,14 +653,14 @@ autoscaling:
   patchObjectFinalizers:
     enabled: true
     activeDeadlineSeconds: 120
-    annotations:
+    annotations:  
       "helm.sh/hook": post-install,post-upgrade,post-rollback,pre-delete
       "helm.sh/hook-delete-policy": hook-succeeded,before-hook-creation
       "helm.sh/hook-weight": "-1"
   # Options for KEDA scaled resources (keep only common options used for both ScaledJob and ScaledObject)
   scaledOptions:
     minReplicaCount: 0
-    maxReplicaCount: 50
+    maxReplicaCount: 8
     pollingInterval: 10
     # List of triggers. Be careful, the default trigger of selenium-grid will be overwritten if you specify this
     # triggers:
@@ -731,12 +684,12 @@ autoscaling:
     scaleTargetRef:
       kind: Deployment
   # Define terminationGracePeriodSeconds for scalingType "deployment". Period for `deregisterLifecycle` to gracefully shut down the node before force terminating it
-  terminationGracePeriodSeconds: 60
+  terminationGracePeriodSeconds: 3600
   # Define preStop command to shut down the node gracefully when scalingType is set to "deployment"
   deregisterLifecycle:
-    preStop:
-      exec:
-        command: ["bash", "-c", "/opt/selenium/nodePreStop.sh"]
+  #  preStop:
+  #    exec:
+  #      command: [ "bash", "-c", "/opt/selenium/nodePreStop.sh" ]
 
 # Configuration for chrome nodes
 chromeNode:
@@ -755,7 +708,7 @@ chromeNode:
   # Image of chrome nodes
   imageName: selenium-node-chrome
   # Image of chrome nodes (this overwrites global.seleniumGrid.nodesImageTag)
-  # imageTag: latest
+  # imageTag: 4.21.0-20240522
   # Image pull policy (see https://kubernetes.io/docs/concepts/containers/images/#updating-images)
   imagePullPolicy: IfNotPresent
   # Image pull secret (see https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/)
@@ -775,11 +728,11 @@ chromeNode:
   # Resources for chrome-node container
   resources:
     requests:
-      memory: "4Gi"
-      cpu: "2"
+      memory: "1Gi"
+      cpu: "1"
     limits:
-      memory: "4Gi"
-      cpu: "2"
+      memory: "1Gi"
+      cpu: "1"
   # SecurityContext for chrome-node container
   securityContext: {}
   # Tolerations for chrome-node pods
@@ -878,7 +831,10 @@ chromeNode:
   #     claimName: my-pv-claim
 
   # Override the scaled options for chrome nodes
-  # scaledOptions:
+  scaledOptions:
+    minReplicaCount: 1
+    maxReplicaCount: 8
+    pollingInterval: 10
   # scaledJobOptions:
   # scaledObjectOptions:
   hpa:
@@ -939,11 +895,11 @@ firefoxNode:
   # Resources for firefox-node container
   resources:
     requests:
-      memory: "4Gi"
-      cpu: "2"
+      memory: "1Gi"
+      cpu: "1"
     limits:
-      memory: "4Gi"
-      cpu: "2"
+      memory: "1Gi"
+      cpu: "1"
   # SecurityContext for firefox-node container
   securityContext: {}
   # Custom host aliases for firefox nodes
@@ -1074,7 +1030,7 @@ edgeNode:
   # Image of edge nodes
   imageName: selenium-node-edge
   # Image of edge nodes (this overwrites global.seleniumGrid.nodesImageTag)
-  # imageTag: latest
+  imageTag: latest
   # Image pull policy (see https://kubernetes.io/docs/concepts/containers/images/#updating-images)
   imagePullPolicy: IfNotPresent
   # Image pull secret (see https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/)
@@ -1098,11 +1054,11 @@ edgeNode:
   # Resources for edge-node container
   resources:
     requests:
-      memory: "4Gi"
-      cpu: "2"
+      memory: "1Gi"
+      cpu: "1"
     limits:
-      memory: "4Gi"
-      cpu: "2"
+      memory: "1Gi"
+      cpu: "1"
   # SecurityContext for edge-node container
   securityContext: {}
   # Custom host aliases for edge nodes
@@ -1270,6 +1226,8 @@ videoRecorder:
   # SecurityContext for recorder container
   securityContext:
   extraEnvironmentVariables:
+  # - name: SE_VIDEO_FOLDER
+  #   value: /videos
   # Custom environment variables by sourcing entire configMap, Secret, etc. for video recorder.
   extraEnvFrom:
   # - configMapRef:
@@ -1369,3 +1327,25 @@ jaeger:
     enabled: false
   query:
     enabled: false
+
+prometheus-stack:
+  cleanPrometheusOperatorObjectNames: true
+  defaultRules:
+    create: true
+    annotations:
+      "helm.sh/hook": post-install,post-upgrade,post-rollback
+  alertmanager:
+    enabled: true
+    annotations:
+      "helm.sh/hook": post-install,post-upgrade,post-rollback
+  grafana:
+    enabled: true
+    adminPassword: admin
+    forceDeployDatasources: true
+    forceDeployDashboards: true
+    annotations:
+      "helm.sh/hook": post-install,post-upgrade,post-rollback
+  prometheus:
+    enabled: true
+    annotations:
+      "helm.sh/hook": post-install,post-upgrade,post-rollback
